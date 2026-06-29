@@ -1,6 +1,7 @@
 import json
 import os
 import re
+import base64
 import uvicorn
 from fastapi import FastAPI
 from langfuse import Langfuse
@@ -15,6 +16,46 @@ from MarketInsight.utils.logger import get_logger
 
 logger = get_logger(__name__)
 app = FastAPI()
+
+# ============================================================
+# Helper function to format response with images
+# ============================================================
+
+def format_response_with_images(response_text: str) -> dict:
+    """Format response to handle base64 images separately for frontend"""
+    
+    # Pattern to match base64 encoded images
+    image_pattern = r'data:image/(png|jpg|jpeg|gif);base64,([A-Za-z0-9+/=]+)'
+    
+    # Find all images in the response
+    images = re.findall(image_pattern, response_text)
+    
+    if images:
+        # Split the response by image markers
+        parts = re.split(image_pattern, response_text)
+        
+        formatted_response = {
+            "text": "",
+            "images": []
+        }
+        
+        # Process text parts and images
+        for i, part in enumerate(parts):
+            if part and not re.match(r'^png|jpg|jpeg|gif$', part):
+                # This is text content
+                formatted_response["text"] += part
+            elif i < len(images) and i > 0:
+                # This is an image (format, base64_data)
+                image_format, base64_data = images[i-1]
+                formatted_response["images"].append({
+                    "format": image_format,
+                    "data": base64_data
+                })
+        
+        return formatted_response
+    else:
+        # No images found, return simple text response
+        return {"text": response_text, "images": []}
 
 # ============================================================
 # CORS Middleware
@@ -107,7 +148,17 @@ async def chat(request: RequestObject):
                             "messages": [
                                 SystemMessage(
                                     content="""
-You are a professional Indian stock market analyst with access to real-time financial data tools. Your goal is to provide comprehensive, well-formatted responses that help users make informed decisions about Indian markets (NSE/BSE).
+You are a professional global stock market analyst with access to real-time financial data tools. Your goal is to provide comprehensive, well-formatted responses that help users make informed decisions about stock markets worldwide.
+
+DOMAIN FOCUS:
+- Your primary focus is stock markets, financial data, investments, commodities, and economic indicators globally
+- You should answer ALL questions related to stocks, shares, market analysis, company information, investment advice, trading, and financial markets
+- Examples of valid topics: stock prices, market indices, company performance, investment strategies, trading tips, financial ratios, market trends, sector analysis, commodity prices, etc.
+- Support for major markets: Indian (NSE/BSE), US (NYSE/NASDAQ), European (LSE, Euronext), Asian (Tokyo, Hong Kong, Singapore), and other global markets
+- CRITICAL: Reject any comparisons between stock market and non-stock-market topics (e.g., "fish market vs stock market", "vegetable market vs stock market", "real estate vs stock market")
+- If a question asks to compare stock market with unrelated markets or topics, politely decline and explain that you only handle stock market and financial market queries
+- Only reject questions that are completely unrelated to finance/investments (e.g., programming help, cooking recipes, personal advice not related to money, general knowledge questions, etc.)
+- If a question is clearly outside your domain, politely explain your focus and suggest they ask market-related questions
 
 RESPONSE FORMATTING RULES:
 
@@ -115,7 +166,11 @@ RESPONSE FORMATTING RULES:
 2. Use bullet points (•) for listing information and details
 3. Use emojis where appropriate to make responses engaging (📈, 📉, 💰, etc.)
 4. Organize information in clear sections with headers
-5. ALWAYS show prices ONLY in Indian Rupees (₹) - do NOT show USD prices
+5. Show prices in the appropriate currency based on the market:
+   - Indian stocks: INR (₹)
+   - US stocks: USD ($)
+   - European stocks: EUR (€) or GBP (£)
+   - Other markets: local currency with USD conversion if helpful
 6. Include percentage changes with + or - signs
 7. Provide context and analysis, not just raw data
 
@@ -154,17 +209,35 @@ VALID:
    - Use get_commodity_price() tool to get current commodity prices
    - Provide prices ONLY in INR (₹) with relevant context
 
-7. Never guess stock tickers - use get_ticker() tool to find them.
+7. For questions asking for graphs, charts, or visualizations:
+   - Use generate_stock_graph() tool to create visual representations
+   - For sector graphs (e.g., "show me automobile sector graph"), use sector parameter with sector name
+   - For individual stock graphs, use ticker parameter with stock symbol
+   - For commodity graphs (e.g., "graph of gold price"), use commodity parameter with commodity name
+   - Supported Indian sectors: automobile, technology, banking, pharma, fmcg, energy, metal
+   - Supported US sectors: us technology, us banking, us healthcare, us energy
+   - Supported European sectors: european technology, european banking
+   - Supported commodities: gold, silver, oil, copper, natural gas, platinum, palladium
+   - Supported periods: "1mo", "3mo", "6mo", "1y", "max"
+   - The tool returns a success message with a graph identifier - the actual graph will be generated and displayed automatically in the chat interface
 
-8. Always try to be helpful and provide actionable insights based on available data.
+8. For questions about stocks in specific price ranges (e.g., "1 rupee stocks", "stocks under ₹10"):
+   - Use screen_stocks_by_price() tool with appropriate max_price parameter
+   - For "1 rupee stocks", use max_price=1.0
+   - For "stocks under ₹10", use max_price=10.0
+   - Present the results with company names, prices, and relevant details
 
-9. When presenting stock information, always include:
+9. Never guess stock tickers - use get_ticker() tool to find them.
+
+10. Always try to be helpful and provide actionable insights based on available data.
+
+11. When presenting stock information, always include:
    - Company name in bold
    - Current price ONLY in INR (₹)
    - Percentage change
    - Additional relevant details (market cap, volume, sector) if available
 
-10. Focus exclusively on Indian markets (NSE/BSE). Do not provide international market data unless specifically requested.
+12. Focus exclusively on Indian markets (NSE/BSE). Do not provide international market data unless specifically requested.
 """
                                 ),
                                 HumanMessage(
@@ -313,11 +386,11 @@ VALID:
                 
                 error_message = (
                     "⚠️ **API Rate Limit Reached**\n\n"
-                    "You've reached the daily token limit for the Groq API. "
-                    "The system has used nearly all available daily tokens.\n\n"
+                    "You've reached the rate limit for the OpenAI API. "
+                    "The system has used nearly all available tokens.\n\n"
                     f"**To continue using the app:**\n"
-                    f"• Wait {wait_time} for the daily limit to reset\n"
-                    "• Upgrade to Groq Dev Tier for higher limits at: https://console.groq.com/settings/billing\n\n"
+                    f"• Wait {wait_time} for the rate limit to reset\n"
+                    "• Check your OpenAI usage at: https://platform.openai.com/usage\n\n"
                     "We apologize for the inconvenience. The limit will reset automatically."
                 )
             elif "timeout" in error_message.lower():

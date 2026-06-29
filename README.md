@@ -4,7 +4,7 @@ An AI-powered Indian stock market analysis platform that provides comprehensive 
 
 ## Overview
 
-MarketInsight leverages advanced AI agents to deliver real-time Indian stock market information, financial analysis, and investment insights. The platform combines the power of LangChain and LangGraph with Groq's Llama 3.3 model and Yahoo Finance data to create an intelligent assistant specifically designed for Indian markets (NSE/BSE).
+MarketInsight leverages advanced AI agents to deliver real-time Indian stock market information, financial analysis, and investment insights. The platform combines the power of LangChain and LangGraph with OpenAI's GPT-4o model and Yahoo Finance data to create an intelligent assistant specifically designed for Indian markets (NSE/BSE).
 
 ## Key Features
 
@@ -19,28 +19,24 @@ MarketInsight leverages advanced AI agents to deliver real-time Indian stock mar
 
 **Backend:**
 - Python 3.x - Primary programming language
-- FastAPI - High-performance API framework
-- Uvicorn - ASGI server
+- FastAPI - High-performance API framework (optional)
+- Uvicorn - ASGI server (optional)
 - LangChain & LangGraph - AI agent orchestration
-- Groq API (Llama 3.3 70B) - AI model for intelligent responses
+- OpenAI API (GPT-4o) - AI model for intelligent responses
 - YFinance - Financial data retrieval
 - Langfuse - Observability and tracing
 
-**Frontend Options:**
-- **React + TypeScript** - Modern, production-ready interface
-  - TailwindCSS for styling
-  - shadcn/ui components
-  - Real-time streaming responses
-- **Streamlit** - Python-based rapid prototyping interface
+**Frontend:**
+- **Streamlit** - Python-based interface
   - Quick deployment
   - Built-in data visualization
+  - Real-time chat interface
 
 ## Getting Started
 
 ### Prerequisites
 - Python 3.x
-- Node.js (for React frontend)
-- Groq API key (free at https://console.groq.com)
+- OpenAI API key (get one at https://platform.openai.com/api-keys)
 
 ### Installation
 
@@ -67,30 +63,22 @@ MarketInsight leverages advanced AI agents to deliver real-time Indian stock mar
 4. Set up environment variables in `.env` file
    ```bash
    cp .env.example .env
-   # Edit .env and add your GROQ_API_KEY
+   # Edit .env and add your OPENAI_API_KEY
    ```
 
-5. Run the backend server
+5. Run the Streamlit application
    ```bash
-   python main.py
+   streamlit run streamlit_app.py
    ```
-   The API will be available at `http://localhost:8000`
+   Access at `http://localhost:8501`
 
-### Frontend Setup (Optional)
+### Optional: FastAPI Backend
 
-**Option 1: React Frontend**
+If you need the FastAPI backend (for API access):
 ```bash
-cd frontend
-npm install
-npm run dev
+python main.py
 ```
-Access at `http://localhost:5173`
-
-**Option 2: Streamlit**
-```bash
-streamlit run streamlit_app.py
-```
-Access at `http://localhost:8501`
+The API will be available at `http://localhost:8000`
 
 ## Project Structure
 
@@ -104,13 +92,8 @@ MarketInsight/
 │       └── logger.py         # Logging configuration
 ├── config/
 │   └── config.py             # Pydantic models
-├── frontend/                # React frontend
-│   ├── src/
-│   │   ├── App.tsx
-│   │   └── main.tsx
-│   └── package.json
-├── main.py                  # FastAPI backend
-├── streamlit_app.py         # Streamlit alternative
+├── main.py                  # FastAPI backend (optional)
+├── streamlit_app.py         # Streamlit frontend
 ├── requirements.txt          # Python dependencies
 ├── .env.example             # Environment template
 └── README.md
@@ -153,8 +136,8 @@ The platform provides 18 specialized tools for comprehensive Indian stock analys
 Create a `.env` file with the following variables:
 
 ```bash
-# Groq API Configuration
-GROQ_API_KEY=your_groq_api_key_here
+# OpenAI API Configuration
+OPENAI_API_KEY=your_openai_api_key_here
 
 # Langfuse Configuration (Optional - for observability/tracing)
 LANGFUSE_PUBLIC_KEY=your_langfuse_public_key
@@ -210,7 +193,7 @@ Content-Type: application/json
 ## Error Handling
 
 The platform includes intelligent error handling for:
-- API rate limits (Groq API)
+- API rate limits (OpenAI API)
 - Data availability issues
 - Invalid ticker symbols
 - Network connectivity problems
@@ -220,7 +203,7 @@ The platform includes intelligent error handling for:
 The project is configured for deployment on:
 - **Render** (render.yaml included)
 - **Docker** (can be containerized)
-- **Vercel** (for React frontend)
+- **Streamlit Cloud** (for Streamlit frontend)
 
 ## Contributing
 
@@ -232,7 +215,7 @@ This project is licensed under the terms specified in the LICENSE file.
 
 ## Acknowledgments
 
-- Groq API for providing fast AI inference
+- OpenAI API for providing AI inference
 - Yahoo Finance (via yfinance) for market data
 - LangChain and LangGraph for AI agent framework
 - The open-source community for the tools and libraries used

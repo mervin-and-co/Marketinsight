@@ -42,20 +42,19 @@ logger = get_logger(__name__)
 # )
 
 # ============================================================
-# Groq API configuration (ACTIVE)
+# OpenAI API configuration (ACTIVE)
 # ============================================================
 
-groq_api_key = os.getenv("GROQ_API_KEY", "")
+openai_api_key = os.getenv("OPENAI_API_KEY", "")
 
-if not groq_api_key:
+if not openai_api_key:
     raise ValueError(
-        "GROQ_API_KEY environment variable is not set."
+        "OPENAI_API_KEY environment variable is not set."
     )
 
 model = ChatOpenAI(
-    model="llama-3.3-70b-versatile",
-    base_url="https://api.groq.com/openai/v1",
-    api_key=groq_api_key,
+    model="gpt-4o",
+    api_key=openai_api_key,
     temperature=0
 )
 
@@ -109,7 +108,8 @@ tools = [
     patch_tool(get_market_indices),
     patch_tool(get_market_movers),
     patch_tool(get_sector_performance),
-    patch_tool(get_commodity_price),
+    patch_tool(screen_stocks_by_price),
+    patch_tool(generate_stock_graph),
 ]
 
 # ============================================================
@@ -123,5 +123,5 @@ agent = create_agent(
 )
 
 logger.info(
-    "Agent Initiated Successfully with Groq API"
+    "Agent Initiated Successfully with OpenAI API"
 )
